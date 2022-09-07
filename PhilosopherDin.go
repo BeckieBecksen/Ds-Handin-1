@@ -6,10 +6,12 @@ func philo(philoId int, leftHand chan int, rightHand chan int) {
 	isEating := false
 
 	for {
+		fib(35)
 		if !isEating {
-			fmt.Println(philoId, "eating")
+			fib(35)
 			<-rightHand
 			<-leftHand
+			fmt.Println(philoId, "eating")
 			isEating = true
 		} else {
 			isEating = false
@@ -33,6 +35,7 @@ func main() {
 	
 	for i := 0; i<5; i++{
 		go philo(i+1, channelArray[i], channelArray[(i+1)%5])	
+		
 	}
 	
 	for i := 0; i<5; i++{
@@ -42,4 +45,13 @@ func main() {
 	for {
 
 	}
+}
+
+
+func fib(x int) int{
+	if x<2{
+		return x
+	}
+	return fib(x-1) + fib(x-2)
+	
 }
