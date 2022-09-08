@@ -22,22 +22,22 @@ func philo(philoId int, leftHand chan int, rightHand chan int) {
 
 func fork(forkId int, available chan int) {
 	available <- 33
-	for {}
+	for {
+	}
 }
 
 func main() {
 	var channelArray = [5]chan int{}
-	for i := 0; i<5; i++{
+	for i := 0; i < 5; i++ {
 		channelArray[i] = make(chan int)
 	}
 
-	for i := 0; i<5; i++{
+	for i := 0; i < 5; i++ {
 		go fork(i+1, channelArray[i])
 	}
-	
-	for i := 0; i<5; i++{
-		go philo(i+1, channelArray[i], channelArray[(i+1)%5])	
-		
+
+	for i := 0; i < 5; i++ {
+		go philo(i+1, channelArray[i], channelArray[(i+1)%5])
 	}
 
 	for {
