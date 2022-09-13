@@ -1,16 +1,23 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
-func philo(philoId int, leftHand chan int, rightHand chan int) {
+func philo(philoId int, leftHand, rightHand, requestLeftHand, requestRightHand chan int, eatingTime int) {
 	isEating := false
-
+	eatCount := 1
 	for {
 		if !isEating {
+			requestLeftHand <- 22
+			requestRightHand <- 22
 			<-rightHand
 			<-leftHand
-			fmt.Println(philoId, "eating")
+			fmt.Println(philoId, "eating for the", eatCount, "th time" )
 			isEating = true
+			eatCount++
+			time.Sleep(time.Duration(eatingTime/2) * time.Second)
 		} else {
 			isEating = false
 			fmt.Println(philoId, "thinking")
@@ -20,9 +27,17 @@ func philo(philoId int, leftHand chan int, rightHand chan int) {
 	}
 }
 
-func fork(forkId int, available chan int) {
-	available <- 33
+func fork(forkId int, available, request chan int) {
+	inUse := false
 	for {
+		if inUse{
+			<- available
+			inUse = false
+		}else{
+			<- request
+			inUse = true
+			available <- 33
+		}
 	}
 }
 
@@ -31,14 +46,23 @@ func main() {
 	for i := 0; i < 5; i++ {
 		channelArray[i] = make(chan int)
 	}
-
+	
+	var eatingTimes = [5]int{2,3,5,7,11}
+	
+	var requestChannels = [5]chan int{}
 	for i := 0; i < 5; i++ {
-		go fork(i+1, channelArray[i])
+		requestChannels[i] = make(chan int)
 	}
 
 	for i := 0; i < 5; i++ {
-		go philo(i+1, channelArray[i], channelArray[(i+1)%5])
+		go fork(i+1, channelArray[i], requestChannels[i])
 	}
+
+	for i := 0; i < 5; i++ {
+		go philo(i+1, channelArray[i], channelArray[(i+1)%5], requestChannels[i], requestChannels[(i+1)%5], eatingTimes[i])
+	}
+	
+	
 
 	for {
 
