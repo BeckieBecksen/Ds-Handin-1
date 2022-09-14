@@ -5,65 +5,79 @@ import (
 	"time"
 )
 
-func philo(philoId int, leftHand, rightHand, requestLeftHand, requestRightHand chan int, eatingTime int) {
+func philo(philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int) {
 	isEating := false
 	eatCount := 1
 	for {
 		if !isEating {
-			fmt.Println(philoId, "eating")
-			requestLeftHand <- 22
-			requestRightHand <- 22
-			<-rightHand
-			<-leftHand
-			fmt.Println(philoId, "eating for the", eatCount, "th time" )
-			isEating = true
-			eatCount++
-			time.Sleep(time.Duration(eatingTime/2) * time.Second)
+			leftOut <- philoId
+			leftCanBeServed := <- leftIn
+			if leftCanBeServed{
+				rightOut <- philoId
+				rightCanBeServed := <- rightIn
+				if rightCanBeServed{
+					fmt.Println(philoId, "eating for the", eatCount, "th time" )
+					isEating = true
+					eatCount++
+					time.Sleep(0* time.Second)
+					leftOut <- philoId
+					rightOut <- philoId
+				}else{
+					// tell the other fork that it is free again
+					leftOut <- philoId
+				}
+			}
 		} else {
 			isEating = false
 			fmt.Println(philoId, "thinking")
-			leftHand <- 33
-			rightHand <- 33
 		}
 	}
 }
 
-func fork(forkId int, available, request chan int) {
-	available <- 33
-	inUse := false
+func fork(forkId int, leftOut, rightOut chan bool, sharedIn chan int) {
+	philoIDKey := 0
 	for {
-		if inUse{
-			<- available
-			inUse = false
+		philoIDKey = <- sharedIn
+		if philoIDKey == forkId{
+			rightOut <- true
 		}else{
-			<- request
-			inUse = true
-			available <- 33
+			leftOut <- true
 		}
+		
+		for {
+			passID := <- sharedIn
+			if passID == philoIDKey{
+				philoIDKey = 0
+				break
+			}else{
+				if passID == forkId{
+					leftOut <- false
+				}else{
+					rightOut <- false
+				}
+			}
+		}	
 	}
 }
 
 func main() {
-	var channelArray = [5]chan int{}
-	for i := 0; i < 5; i++ {
-		channelArray[i] = make(chan int)
+	var comms = [10]chan bool{}
+	for i := 0; i < 10; i++ {
+		comms[i] = make(chan bool)
 	}
 	
-	var eatingTimes = [5]int{2,3,5,7,11}
-	
-	var requestChannels = [5]chan int{}
+	var forkIn = [5]chan int{}
 	for i := 0; i < 5; i++ {
-		requestChannels[i] = make(chan int)
-	}
-
-	for i := 0; i < 5; i++ {
-		go fork(i+1, channelArray[i], requestChannels[i])
-	}
-
-	for i := 0; i < 5; i++ {
-		go philo(i+1, channelArray[i], channelArray[(i+1)%5], requestChannels[i], requestChannels[(i+1)%5], eatingTimes[i])
+		forkIn[i] = make(chan int)
 	}
 	
+	index := 0
+	for i := 0; i < 5; i++{
+		go philo(i+1, comms[index], comms[index+1],forkIn[(index-1+5)%5], forkIn[(index-2+5)%5] )
+		go fork(i+1, comms[(index-1+10)%10], comms[index], forkIn[i])
+		index++
+		index++
+	}
 
 	for {
 
