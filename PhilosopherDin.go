@@ -34,51 +34,73 @@ func philo(philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int) {
 	}
 }
 
-func fork(forkId int, leftOut, rightOut chan bool, sharedIn chan int) {
-	philoIDKey := 0
+func fork(forkId int, leftOut, rightOut chan bool, sharedIn chan int, leftPhiloID, rightPhiloID int) {
+	isAvalible := true 
+	philoUsingFork := 0
+	
 	for {
-		philoIDKey = <- sharedIn
-		if philoIDKey == forkId{
-			rightOut <- true
-		}else{
-			leftOut <- true
+		philoID := <- sharedIn
+		
+		if philoID == leftPhiloID{
+			if isAvalible{
+				leftOut <- true
+				philoUsingFork = philoID
+				isAvalible = false
+			}else{
+				if philoUsingFork == philoID{
+					isAvalible = true
+					philoUsingFork = 0
+				}else{
+					leftOut <- false
+				}
+			}
 		}
 		
-		for {
-			passID := <- sharedIn
-			if passID == philoIDKey{
-				philoIDKey = 0
-				break
+		if philoID == rightPhiloID{
+			if isAvalible{
+				rightOut <- true
+				philoUsingFork = philoID
+				isAvalible = false
 			}else{
-				if passID == forkId{
-					leftOut <- false
+				if philoUsingFork == philoID{
+					isAvalible = true
+					philoUsingFork = 0
 				}else{
 					rightOut <- false
 				}
 			}
-		}	
+		
+		}
 	}
 }
 
 func main() {
 	var comms = [10]chan bool{}
 	for i := 0; i < 10; i++ {
-		comms[i] = make(chan bool)
+		comms[i] = make(chan (bool), 1)
 	}
 	
 	var forkIn = [5]chan int{}
 	for i := 0; i < 5; i++ {
-		forkIn[i] = make(chan int)
+		forkIn[i] = make(chan (int), 1)
 	}
 	
-	index := 0
-	for i := 0; i < 5; i++{
-		go philo(i+1, comms[index], comms[index+1],forkIn[(index-1+5)%5], forkIn[(index-2+5)%5] )
-		go fork(i+1, comms[(index-1+10)%10], comms[index], forkIn[i])
-		index++
-		index++
-	}
-
+	//philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int
+	
+	go philo(1, comms[0], comms[1], forkIn[4], forkIn[0])
+	go philo(2, comms[2], comms[3], forkIn[0], forkIn[1])
+	go philo(3, comms[4], comms[5], forkIn[1], forkIn[2])
+	go philo(4, comms[6], comms[7], forkIn[2], forkIn[3])
+	go philo(5, comms[8], comms[9], forkIn[3], forkIn[4])
+	
+	//forkId int, leftOut, rightOut chan bool, sharedIn chan int, leftPhiloID, rightPhiloID int
+	
+	go fork(1, comms[9], comms[0], forkIn[0], 5, 1)
+	go fork(2, comms[1], comms[2], forkIn[0], 1, 2)
+	go fork(3, comms[3], comms[4], forkIn[0], 2, 3)
+	go fork(4, comms[5], comms[6], forkIn[0], 3, 4)
+	go fork(5, comms[7], comms[8], forkIn[0], 4, 5)
+	
 	for {
 
 	}
