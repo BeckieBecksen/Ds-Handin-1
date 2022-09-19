@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+/*
+--------------------------------------
+**Why the code does not deadlock**
+The Philosophers are in a continuous state of requesting forks and picking them up if they are available.
+The state of a deadlock would occur if each philosopher is holding one fork and is not able to eat.
+This does not happen in our program, because if a philosopher(A) has picked up a fork and the other fork is unavailable, philospher(A)
+will put down the fork he/she has picked up before, allowing philospher(B) to pick it up or philisopher(A) could pick the fork up again.
+
+--------------------------------------
+*/
+
 func philo(philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int) {
 	isEating := false
 	eatCount := 1
