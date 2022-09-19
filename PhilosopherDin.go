@@ -11,18 +11,18 @@ func philo(philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int) {
 	for {
 		if !isEating {
 			leftOut <- philoId
-			leftCanBeServed := <- leftIn
-			if leftCanBeServed{
+			leftCanBeServed := <-leftIn
+			if leftCanBeServed {
 				rightOut <- philoId
-				rightCanBeServed := <- rightIn
-				if rightCanBeServed{
-					fmt.Println(philoId, "eating for the", eatCount, "th time" )
+				rightCanBeServed := <-rightIn
+				if rightCanBeServed {
+					fmt.Println(philoId, "eating for the", eatCount, "th time")
 					isEating = true
 					eatCount++
-					time.Sleep(0* time.Second)
+					time.Sleep(1 * time.Second)
 					leftOut <- philoId
 					rightOut <- philoId
-				}else{
+				} else {
 					// tell the other fork that it is free again
 					leftOut <- philoId
 				}
@@ -35,41 +35,45 @@ func philo(philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int) {
 }
 
 func fork(forkId int, leftOut, rightOut chan bool, sharedIn chan int, leftPhiloID, rightPhiloID int) {
-	isAvalible := true 
+	isAvalible := true
 	philoUsingFork := 0
-	
+
 	for {
-		philoID := <- sharedIn
-		
-		if philoID == leftPhiloID{
-			if isAvalible{
+		philoID := <-sharedIn
+
+		if philoID == leftPhiloID {
+			if isAvalible {
 				leftOut <- true
 				philoUsingFork = philoID
 				isAvalible = false
-			}else{
-				if philoUsingFork == philoID{
+			} else {
+				if philoUsingFork == philoID {
 					isAvalible = true
 					philoUsingFork = 0
-				}else{
+				} else {
 					leftOut <- false
 				}
 			}
 		}
-		
-		if philoID == rightPhiloID{
-			if isAvalible{
+
+		if philoID == rightPhiloID {
+			if isAvalible {
 				rightOut <- true
 				philoUsingFork = philoID
 				isAvalible = false
-			}else{
-				if philoUsingFork == philoID{
+			} else {
+				if philoUsingFork == philoID {
 					isAvalible = true
 					philoUsingFork = 0
-				}else{
+				} else {
 					rightOut <- false
 				}
 			}
-		
+
+		}
+
+		if philoID != rightPhiloID && philoID != leftPhiloID {
+			fmt.Println("ERROR, on fork", forkId, "got id:", philoID, "expected one of:", leftPhiloID, rightPhiloID)
 		}
 	}
 }
@@ -79,28 +83,26 @@ func main() {
 	for i := 0; i < 10; i++ {
 		comms[i] = make(chan (bool), 1)
 	}
-	
+
 	var forkIn = [5]chan int{}
 	for i := 0; i < 5; i++ {
 		forkIn[i] = make(chan (int), 1)
 	}
-	
-	//philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int
-	
-	go philo(1, comms[0], comms[1], forkIn[4], forkIn[0])
-	go philo(2, comms[2], comms[3], forkIn[0], forkIn[1])
-	go philo(3, comms[4], comms[5], forkIn[1], forkIn[2])
-	go philo(4, comms[6], comms[7], forkIn[2], forkIn[3])
-	go philo(5, comms[8], comms[9], forkIn[3], forkIn[4])
-	
+
 	//forkId int, leftOut, rightOut chan bool, sharedIn chan int, leftPhiloID, rightPhiloID int
-	
 	go fork(1, comms[9], comms[0], forkIn[0], 5, 1)
-	go fork(2, comms[1], comms[2], forkIn[0], 1, 2)
-	go fork(3, comms[3], comms[4], forkIn[0], 2, 3)
-	go fork(4, comms[5], comms[6], forkIn[0], 3, 4)
-	go fork(5, comms[7], comms[8], forkIn[0], 4, 5)
-	
+	go fork(2, comms[1], comms[2], forkIn[1], 1, 2)
+	go fork(3, comms[3], comms[4], forkIn[2], 2, 3)
+	go fork(4, comms[5], comms[6], forkIn[3], 3, 4)
+	go fork(5, comms[7], comms[8], forkIn[4], 4, 5)
+
+	//philoId int, leftIn, rightIn chan bool, leftOut, rightOut chan int
+	go philo(1, comms[0], comms[1], forkIn[0], forkIn[1])
+	go philo(2, comms[2], comms[3], forkIn[1], forkIn[2])
+	go philo(3, comms[4], comms[5], forkIn[2], forkIn[3])
+	go philo(4, comms[6], comms[7], forkIn[3], forkIn[4])
+	go philo(5, comms[8], comms[9], forkIn[4], forkIn[0])
+
 	for {
 
 	}
